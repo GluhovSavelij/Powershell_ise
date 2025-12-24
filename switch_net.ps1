@@ -4,7 +4,7 @@ function Quick-IP-Find {
                                Where-Object {$_.NextHop -like "192*"} | 
                                Select-Object -First 1).InterfaceIndex,
         [string]$TestDomain = "ya.ru",
-        [string[]]$DNSServers = @("77.88.8.8", "77.88.8.1")
+        [string[]]$DNSServers = @("77.88.8.8", "77.88.8.2")
     )
     
     # Получаем информацию о текущем адаптере
