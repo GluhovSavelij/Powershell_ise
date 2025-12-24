@@ -1,136 +1,42 @@
-# Определяем кодировки
-$encoding1251 = [System.Text.Encoding]::GetEncoding(1251)
-$encodingUTF8 = [System.Text.Encoding]::UTF8
+# 修复后的网络适配器双工模式设置脚本
+# 使用标准英文参数值以确保兼容性
 
-# Исходные русские тексты
-$originalText1 = "Скорость и дуплекс"
-$originalText2 = "1 Гбит/с дуплекс"
-
-# Преобразуем в байты (UTF-8 -> Windows-1251)
-$bytes1251_1 = $encoding1251.GetBytes($originalText1)
-$bytes1251_2 = $encoding1251.GetBytes($originalText2)
-
-# Преобразуем обратно в строки (для проверки)
-$displayName1251 = $encoding1251.GetString($bytes1251_1)
-$displayValue1251 = $encoding1251.GetString($bytes1251_2)
-
-Write-Host "DisplayName (1251): '$displayName1251'" -ForegroundColor Yellow
-Write-Host "DisplayValue (1251): '$displayValue1251'" -ForegroundColor Yellow
-
-# Альтернативный метод - правильные значения для Windows
-# В большинстве случаев Windows использует UTF-8 или Unicode
-# Правильные значения для сетевых адаптеров:
+# 定义正确的参数值（Windows系统通常识别这些英文值）
 $correctDisplayName = "Speed & Duplex"
-$correctDisplayValues = @(
-    "10 Мбит/с Half Duplex",
-    "10 Мбит/с Full Duplex", 
-    "100 Мбит/с Half Duplex",
-    "100 Мбит/с Full Duplex",
-    "1.0 Гбит/с Full Duplex",  # ← правильный формат для 1 Гбит
-    "2.5 Гбит/с Full Duplex",
-    "5.0 Гбит/с Full Duplex",
-    "10 Гбит/с Full Duplex"
-)
+$targetSpeedValue = "1.0 Gbps Full Duplex"
 
-Write-Host "`nРекомендуемые значения:" -ForegroundColor Cyan
-Write-Host "DisplayName: '$correctDisplayName'"
-Write-Host "DisplayValue для 1 Гбит: '$($correctDisplayValues[4])'"
+# 获取速度为100 Mbps的以太网适配器
+$adaptersToFix = Get-NetAdapter | Where-Object { 
+    $_.LinkSpeed -eq '100 Mbps' -and $_.Name -like '*hernet*' 
+}
 
-# Основной скрипт
-Get-NetAdapter | Where-Object { $_.LinkSpeed -eq '100 Mbps' } | ForEach-Object {
-    if($_.Name -like '*hernet*') {
-        Write-Host "`nОбработка адаптера: $($_.Name)" -ForegroundColor Green
-        Write-Host "Текущая скорость: $($_.LinkSpeed)" -ForegroundColor Yellow
+# 检查是否有适配器需要处理
+if (-not $adaptersToFix) {
+    Write-Host "未找到速度为100 Mbps的以太网适配器，无需更改。" -ForegroundColor Yellow
+    exit
+}
+
+Write-Host "找到 $($adaptersToFix.Count) 个需要处理的适配器。" -ForegroundColor Cyan
+
+# 循环处理每个适配器
+foreach ($adapter in $adaptersToFix) {
+    Write-Host "`n正在处理适配器: $($adapter.Name) (接口描述: $($adapter.InterfaceDescription))" -ForegroundColor White
+    
+    try {
+        # 尝试设置速度和双工模式
+        Set-NetAdapterAdvancedProperty -Name $adapter.Name -DisplayName $correctDisplayName -DisplayValue $targetSpeedValue -ErrorAction Stop
+        Write-Host "  ✓ 已将 '$correctDisplayName' 设置为 '$targetSpeedValue'" -ForegroundColor Green
         
-        # Вариант 1: Использовать перекодированные русские значения
-        try {
-            Write-Host "Попытка установить русские значения..." -ForegroundColor Cyan
-            Set-NetAdapterAdvancedProperty -Name $_.Name -DisplayName $displayName1251 -DisplayValue $displayValue1251 -ErrorAction Stop
-            Write-Host "✓ Значения установлены" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "✗ Ошибка с русскими значениями: $_" -ForegroundColor Red
-            
-            # Вариант 2: Использовать стандартные английские значения
-            Write-Host "Попытка установить стандартные значения..." -ForegroundColor Cyan
-            try {
-                Set-NetAdapterAdvancedProperty -Name $_.Name -DisplayName $correctDisplayName -DisplayValue $correctDisplayValues[4] -ErrorAction Stop
-                Write-Host "✓ Стандартные значения установлены" -ForegroundColor Green
-            }
-            catch {
-                Write-Host "✗ Ошибка: $_" -ForegroundColor Red
-            }
-        }
+        # 重启适配器以应用更改
+        Write-Host "  ↻ 正在重启适配器..." -ForegroundColor Yellow
+        Restart-NetAdapter -Name $adapter.Name -Confirm:$false -ErrorAction Stop
         
-        # Перезапуск адаптера
-        try {
-            Write-Host "Перезапуск адаптера..." -ForegroundColor Magenta
-            Restart-NetAdapter -Name $_.Name -Confirm:$false -ErrorAction Stop
-            Write-Host "✓ Адаптер перезапущен" -ForegroundColor Green
-        }
-        catch {
-            Write-Host "✗ Ошибка при перезапуске: $_" -ForegroundColor Red
-        }
+        Write-Host "  ✓ 适配器已重启。建议等待几秒钟让网络重新连接。" -ForegroundColor Green
+        
+    } catch {
+        Write-Host "  ✗ 处理适配器时出错: $_" -ForegroundColor Red
+        # 可以选择记录错误或继续处理下一个适配器
     }
 }
 
-# Дополнительная функция для проверки доступных свойств
-function Get-AdapterProperties {
-    param([string]$AdapterName = "*hernet*")
-    
-    Get-NetAdapter | Where-Object { $_.Name -like $AdapterName } | ForEach-Object {
-        Write-Host "`nСвойства адаптера: $($_.Name)" -ForegroundColor Cyan
-        Write-Host "=" * 50
-        
-        $properties = Get-NetAdapterAdvancedProperty -Name $_.Name
-        
-        # Группируем по DisplayName для удобства
-        $groupedProps = $properties | Group-Object DisplayName
-        
-        foreach ($group in $groupedProps) {
-            Write-Host "`nDisplayName: '$($group.Name)'" -ForegroundColor Yellow
-            $group.Group | ForEach-Object {
-                Write-Host "  - DisplayValue: '$($_.DisplayValue)'"
-                Write-Host "    RegistryKeyword: $($_.RegistryKeyword)"
-                Write-Host "    Valid: $($_.ValidDisplayValues -join ', ')"
-            }
-        }
-    }
-}
-
-# Проверить доступные свойства (раскомментировать при необходимости)
-# Get-AdapterProperties
-
-# Функция для поиска правильного имени свойства "Скорость и дуплекс"
-function Find-SpeedDuplexProperty {
-    param([string]$AdapterName = "*hernet*")
-    
-    $adapters = Get-NetAdapter | Where-Object { $_.Name -like $AdapterName }
-    
-    foreach ($adapter in $adapters) {
-        Write-Host "`nПоиск для: $($adapter.Name)" -ForegroundColor Cyan
-        
-        $properties = Get-NetAdapterAdvancedProperty -Name $adapter.Name
-        
-        # Ищем свойство, связанное со скоростью
-        $speedProps = $properties | Where-Object { 
-            $_.DisplayName -match "(Speed|Duplex|Скорость|дуплекс)" -or
-            $_.RegistryKeyword -match "(Speed|Duplex)"
-        }
-        
-        if ($speedProps) {
-            Write-Host "Найдены свойства скорости:" -ForegroundColor Green
-            $speedProps | ForEach-Object {
-                Write-Host "  DisplayName: '$($_.DisplayName)'"
-                Write-Host "  Текущее значение: '$($_.DisplayValue)'"
-                Write-Host "  Доступные значения: $($_.ValidDisplayValues -join ', ')"
-                Write-Host "  ---"
-            }
-        } else {
-            Write-Host "Свойства скорости не найдены" -ForegroundColor Yellow
-        }
-    }
-}
-
-# Поиск свойства скорости (раскомментировать при необходимости)
-# Find-SpeedDuplexProperty
+Write-Host "`n脚本执行完毕。" -ForegroundColor Cyan
