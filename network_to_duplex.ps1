@@ -1,5 +1,5 @@
 $bytes1251 = $encoding1251.GetBytes($originalText)
-$originalText = @(
+$originalText = 
 Get-NetAdapter | Where-Object { $_.LinkSpeed -eq '100 Mbps' } | ForEach-Object {
 IF($_.Name -like '*hernet*'  )
 {
@@ -7,5 +7,5 @@ IF($_.Name -like '*hernet*'  )
     Restart-NetAdapter -Name $_.Name 
 }
 }
-)
+
 
