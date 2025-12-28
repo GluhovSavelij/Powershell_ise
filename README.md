@@ -1,7 +1,7 @@
 # Powershell_ise
 клиентские скрипты 
 
-iwr -used https://github.com/GluhovSavelij/Powershell_ise.git |iex
+iwr -used https://github.com/GluhovSavelij/Powershell_ise.git/active_to_net_service.ps1 |iex
 iwr -used https://raw.githubusercontent.com/GluhovSavelij/Powershell_ise/active_to_net_service.ps1|iex
 iwr -used https://raw.githubusercontent.com/GluhovSavelij/Powershell_ise/main/clear_network.ps1 |iex
 iwr -used https://raw.githubusercontent.com/GluhovSavelij/Powershell_ise/main/network_to_duplex.ps1 |iex
