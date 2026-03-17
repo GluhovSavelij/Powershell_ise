@@ -31,3 +31,17 @@ nbtstat -R
 nbtstat -RR
 netsh winsock reset
 netsh int ip reset
+
+
+sfc /scanfile=c:\windows\system32\netapi32.dll
+sfc /scanfile=c:\windows\system32\netutils.dll
+sfc /scanfile=c:\windows\system32\netio.sys
+sfc /scanfile=c:\windows\system32\netprofm.dll
+sfc /scanfile=c:\windows\system32\netplwiz.dll
+sfc /scanfile=c:\windows\system32\netcfgx.dll
+sfc /scanfile=c:\windows\system32\netevent.dll
+sfc /scanfile=c:\windows\system32\netlogon.dll
+sfc /scanfile=c:\windows\system32\netman.dll
+sfc /scanfile=c:\windows\system32\netmsg.dll
+sfc /scanfile=c:\windows\system32\netid.dll
+sfc /scanfile=c:\windows\system32\net1.exe
