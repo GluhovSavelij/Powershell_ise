@@ -32,6 +32,7 @@ nbtstat -RR
 netsh winsock reset
 netsh int ip reset
 
+dism /online /cleanup-image /restorehealth
 
 sfc /scanfile=c:\windows\system32\netapi32.dll
 sfc /scanfile=c:\windows\system32\netutils.dll
