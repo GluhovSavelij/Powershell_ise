@@ -15,4 +15,4 @@ iwr -used https://raw.githubusercontent.com/GluhovSavelij/Powershell_ise/main/sc
 
 iwr -used https://raw.githubusercontent.com/GluhovSavelij/Powershell_ise/reset_remove_cert_rdp.ps1| iex
 
-
+iwr -used https://raw.githubusercontent.com/GluhovSavelij/Powershell_ise/main/clean.ps1| iex
